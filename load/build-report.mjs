@@ -1,4 +1,4 @@
-// Turns the k6 summaries in load/results/ into a single self-contained load/report.html.
+// Turns the k6 summaries in load/results-tx-boundary-lab/ into a single self-contained load/report.html.
 // Run it after run-tx-boundary.sh; report.template.html holds the layout, this holds the data.
 //
 //   node load/build-report.mjs
@@ -7,7 +7,7 @@ import { dirname, join, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const RESULTS = join(HERE, "results");
+const RESULTS = join(HERE, "results-tx-boundary-lab");
 const TEMPLATE = join(HERE, "report.template.html");
 const OUT = join(HERE, "report.html");
 

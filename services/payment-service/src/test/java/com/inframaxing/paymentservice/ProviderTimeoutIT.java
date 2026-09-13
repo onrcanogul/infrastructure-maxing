@@ -2,6 +2,7 @@ package com.inframaxing.paymentservice;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.inframaxing.paymentservice.model.PaymentStatus;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
@@ -22,9 +23,17 @@ class ProviderTimeoutIT extends IntegrationTestSupport {
 		long elapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started);
 
 		assertThat(elapsedMs).isLessThan(3_000);
-		assertThat(paymentCount(merchantId)).isZero();
-		assertThat(idempotencyKeyCount(merchantId)).isZero();
+		assertThat(paymentCount(merchantId)).isEqualTo(1);
+		assertThat(idempotencyKeyCount(merchantId)).isEqualTo(1);
+		assertThat(statusOf(merchantId)).isEqualTo(PaymentStatus.AUTHORIZING.name());
 
 		ProviderStub.release();
+	}
+
+	private String statusOf(UUID merchantId) {
+		return jdbc.sql("select status from payment where merchant_id = :merchantId")
+				.param("merchantId", merchantId)
+				.query(String.class)
+				.single();
 	}
 }

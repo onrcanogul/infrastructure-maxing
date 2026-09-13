@@ -8,7 +8,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 NETWORK=infrastructure-maxing_default
 DURATION=${DURATION:-30s}
-OUT=load/results
+OUT=load/results-tx-boundary-lab
 mkdir -p "$OUT"
 
 hikari() { # max of a Hikari gauge while the test runs, sampled from the app's Prometheus endpoint
@@ -28,7 +28,7 @@ for spec in "$@"; do
     hikari hikaricp_connections_active "$active" & p2=$!
     docker run --rm --network "$NETWORK" -v "$PWD/load:/load" \
       -e VARIANT="$variant" -e RATE="$rate" -e DURATION="$DURATION" \
-      grafana/k6:1.3.0 run --quiet --summary-export "/load/results/$variant-$rate.json" /load/tx-boundary.js >/dev/null 2>&1 || true
+      grafana/k6:1.3.0 run --quiet --summary-export "/load/results-tx-boundary-lab/$variant-$rate.json" /load/tx-boundary.js >/dev/null 2>&1 || true
     kill $p1 $p2 2>/dev/null; wait $p1 $p2 2>/dev/null || true
     python3 - "$OUT/$variant-$rate.json" "$variant" "$rate" "$pending" "$active" <<'PY'
 import json, sys

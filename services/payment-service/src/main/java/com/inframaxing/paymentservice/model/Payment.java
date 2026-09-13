@@ -50,6 +50,10 @@ public class Payment {
 				providerCode, providerRef, failureReason, createdAt, updatedAt, version);
 	}
 
+	public void startAuthorization() {
+		transitionTo(PaymentStatus.AUTHORIZING);
+	}
+
 	public void authorize(String providerCode, String providerRef) {
 		Objects.requireNonNull(providerCode, "providerCode");
 		Objects.requireNonNull(providerRef, "providerRef");

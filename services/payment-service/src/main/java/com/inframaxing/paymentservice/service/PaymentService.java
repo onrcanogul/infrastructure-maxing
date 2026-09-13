@@ -39,17 +39,19 @@ public class PaymentService {
 	public PaymentCreation create(UUID merchantId, String idempotencyKey, Money money, String reference) {
 		String requestHash = idempotency.requestHash(merchantId, money, reference);
 		Payment payment = Payment.create(merchantId, money, reference);
+		payment.startAuthorization();
 
 		try {
 			transactions.executeWithoutResult(status -> {
 				repository.insert(payment);
 				idempotency.register(merchantId, idempotencyKey, requestHash, payment.id());
-				applyProviderDecision(payment);
-				repository.update(payment);
 			});
 		} catch (DuplicateKeyException e) {
 			return replay(merchantId, idempotencyKey, requestHash);
 		}
+
+		applyProviderDecision(payment);
+		transactions.executeWithoutResult(status -> repository.update(payment));
 
 		metrics.created(money);
 		return new PaymentCreation(payment, false);
