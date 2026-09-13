@@ -1,11 +1,14 @@
 package com.inframaxing.paymentservice;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.client.RestTestClient;
 
 import java.util.HashMap;
@@ -22,6 +25,16 @@ public abstract class IntegrationTestSupport {
 
 	@Autowired
 	protected JdbcClient jdbc;
+
+	@DynamicPropertySource
+	static void provider(DynamicPropertyRegistry registry) {
+		registry.add("app.provider.base-url", ProviderStub::baseUrl);
+	}
+
+	@BeforeEach
+	void providerAnswersImmediately() {
+		ProviderStub.answerImmediately();
+	}
 
 	protected RestTestClient.ResponseSpec postPayment(String idempotencyKey, Map<String, Object> body) {
 		return client.post().uri("/v1/payments")

@@ -33,7 +33,7 @@ class PaymentIdempotencyIT extends IntegrationTestSupport {
 				.getResponseBody();
 
 		assertThat(created).isNotNull();
-		assertThat(created.status()).isEqualTo(PaymentStatus.CREATED);
+		assertThat(created.status()).isEqualTo(PaymentStatus.AUTHORIZED);
 		assertThat(created.amountMinor()).isEqualTo(1250);
 		assertThat(created.currency()).isEqualTo("TRY");
 		assertThat(paymentCount(merchantId)).isEqualTo(1);

@@ -8,11 +8,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
-/**
- * The HTTP client for the provider, with every timeout set (notes/05-timeouts.txt):
- * connect bounds the TCP handshake, read bounds the wait for the response. Left alone, both
- * would be unlimited.
- */
 @Configuration(proxyBeanMethods = false)
 public class ProviderClientConfig {
 

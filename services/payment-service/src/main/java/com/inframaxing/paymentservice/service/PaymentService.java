@@ -6,6 +6,8 @@ import com.inframaxing.paymentservice.metrics.PaymentMetrics;
 import com.inframaxing.paymentservice.model.Money;
 import com.inframaxing.paymentservice.model.Payment;
 import com.inframaxing.paymentservice.model.PaymentCreation;
+import com.inframaxing.paymentservice.provider.PaymentProviderClient;
+import com.inframaxing.paymentservice.provider.ProviderDecision;
 import com.inframaxing.paymentservice.repository.PaymentRepository;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
@@ -22,13 +24,16 @@ public class PaymentService {
 	private final IdempotencyService idempotency;
 	private final TransactionTemplate transactions;
 	private final PaymentMetrics metrics;
+	private final PaymentProviderClient provider;
 
 	public PaymentService(PaymentRepository repository, IdempotencyService idempotency,
-			PlatformTransactionManager transactionManager, PaymentMetrics metrics) {
+			PlatformTransactionManager transactionManager, PaymentMetrics metrics,
+			PaymentProviderClient provider) {
 		this.repository = repository;
 		this.idempotency = idempotency;
 		this.transactions = new TransactionTemplate(transactionManager);
 		this.metrics = metrics;
+		this.provider = provider;
 	}
 
 	public PaymentCreation create(UUID merchantId, String idempotencyKey, Money money, String reference) {
@@ -39,6 +44,8 @@ public class PaymentService {
 			transactions.executeWithoutResult(status -> {
 				repository.insert(payment);
 				idempotency.register(merchantId, idempotencyKey, requestHash, payment.id());
+				applyProviderDecision(payment);
+				repository.update(payment);
 			});
 		} catch (DuplicateKeyException e) {
 			return replay(merchantId, idempotencyKey, requestHash);
@@ -46,6 +53,15 @@ public class PaymentService {
 
 		metrics.created(money);
 		return new PaymentCreation(payment, false);
+	}
+
+	private void applyProviderDecision(Payment payment) {
+		ProviderDecision decision = provider.authorize(payment);
+		if (decision.outcome() == ProviderDecision.Outcome.APPROVED) {
+			payment.authorize(provider.code(), decision.providerRef());
+		} else {
+			payment.fail(provider.code(), "declined by provider");
+		}
 	}
 
 	public Payment authorize(UUID id, String providerCode, String providerRef) {

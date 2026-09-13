@@ -91,6 +91,8 @@ class PaymentVersioningIT extends IntegrationTestSupport {
 	}
 
 	private UUID createPayment() {
-		return paymentService.create(UUID.randomUUID(), "versioning", new Money(100, "TRY"), null).payment().id();
+		Payment payment = Payment.create(UUID.randomUUID(), new Money(100, "TRY"), null);
+		paymentRepository.insert(payment);
+		return payment.id();
 	}
 }

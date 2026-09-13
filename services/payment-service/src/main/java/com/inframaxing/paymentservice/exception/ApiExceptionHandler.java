@@ -44,6 +44,12 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 		return problem(HttpStatus.CONFLICT, "Invalid payment transition", e.getMessage());
 	}
 
+	@ExceptionHandler(ProviderCallFailedException.class)
+	public ProblemDetail providerCallFailed(ProviderCallFailedException e) {
+		HttpStatus status = e.timedOut() ? HttpStatus.GATEWAY_TIMEOUT : HttpStatus.BAD_GATEWAY;
+		return problem(status, "Provider call failed", e.getMessage());
+	}
+
 	@ExceptionHandler(IllegalArgumentException.class)
 	public ProblemDetail invalidArgument(IllegalArgumentException e, WebRequest request) {
 		countInvalidCreation(HttpStatus.BAD_REQUEST, request);

@@ -66,12 +66,11 @@ public class TransactionBoundaryLab {
 		return transactions.execute(status -> payments.update(payment));
 	}
 
-	private static void apply(Payment payment, ProviderDecision decision) {
-		if (decision != null && decision.approved()) {
-			payment.authorize(decision.code(), decision.reference());
+	private void apply(Payment payment, ProviderDecision decision) {
+		if (decision.outcome() == ProviderDecision.Outcome.APPROVED) {
+			payment.authorize(provider.code(), decision.providerRef());
 		} else {
-			payment.fail(decision == null ? null : decision.code(),
-					decision == null ? "no answer from provider" : decision.reason());
+			payment.fail(provider.code(), "declined by provider");
 		}
 	}
 }
