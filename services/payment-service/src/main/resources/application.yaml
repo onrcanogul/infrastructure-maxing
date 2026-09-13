@@ -11,16 +11,32 @@ spring:
   lifecycle:
     timeout-per-shutdown-phase: ${SHUTDOWN_TIMEOUT:20s}
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/payments}
+    url: ${DB_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:payments}}
     username: ${DB_USERNAME:payments}
     password: ${DB_PASSWORD:payments}
+    driver-class-name: org.postgresql.Driver
     hikari:
+      pool-name: ${DB_POOL_NAME:payment-db}
       maximum-pool-size: ${DB_POOL_MAX_SIZE:10}
       minimum-idle: ${DB_POOL_MIN_IDLE:2}
       connection-timeout: ${DB_CONNECTION_TIMEOUT_MS:3000}
+      validation-timeout: ${DB_VALIDATION_TIMEOUT_MS:1000}
+      idle-timeout: ${DB_IDLE_TIMEOUT_MS:600000}
+      max-lifetime: ${DB_MAX_LIFETIME_MS:1800000}
+      keepalive-time: ${DB_KEEPALIVE_TIME_MS:300000}
+      leak-detection-threshold: ${DB_LEAK_DETECTION_MS:0}
+      data-source-properties:
+        ApplicationName: ${spring.application.name}
+        connectTimeout: ${DB_CONNECT_TIMEOUT_S:5}
+        socketTimeout: ${DB_SOCKET_TIMEOUT_S:30}
+        tcpKeepAlive: true
+        reWriteBatchedInserts: true
+        options: -c statement_timeout=${DB_STATEMENT_TIMEOUT_MS:5000}
   flyway:
     enabled: ${FLYWAY_ENABLED:true}
     locations: ${FLYWAY_LOCATIONS:classpath:db/scripts}
+    connect-retries: ${FLYWAY_CONNECT_RETRIES:10}
+    connect-retries-interval: ${FLYWAY_CONNECT_RETRIES_INTERVAL:3s}
 
 management:
   endpoints:

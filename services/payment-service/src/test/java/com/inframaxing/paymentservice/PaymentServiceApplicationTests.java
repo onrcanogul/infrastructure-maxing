@@ -1,7 +1,12 @@
 package com.inframaxing.paymentservice;
 
 import com.inframaxing.paymentservice.dto.PaymentResponse;
+import com.inframaxing.paymentservice.exception.PaymentVersionConflictException;
+import com.inframaxing.paymentservice.model.Money;
+import com.inframaxing.paymentservice.model.Payment;
 import com.inframaxing.paymentservice.model.PaymentStatus;
+import com.inframaxing.paymentservice.repository.PaymentRepository;
+import com.inframaxing.paymentservice.service.PaymentService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient;
@@ -26,6 +31,7 @@ import java.util.concurrent.Future;
 import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureRestTestClient
@@ -37,6 +43,12 @@ class PaymentServiceApplicationTests {
 
 	@Autowired
 	JdbcClient jdbc;
+
+	@Autowired
+	PaymentService paymentService;
+
+	@Autowired
+	PaymentRepository paymentRepository;
 
 	@Test
 	void createsPendingPayment() {
@@ -119,6 +131,49 @@ class PaymentServiceApplicationTests {
 		assertThat(statuses).filteredOn(HttpStatus.CREATED::equals).hasSize(1);
 		assertThat(results.stream().map(r -> r.getResponseBody().id()).distinct()).hasSize(1);
 		assertThat(paymentCount(merchantId)).isEqualTo(1);
+	}
+
+	@Test
+	void staleVersionUpdateIsRejected() {
+		Payment created = paymentService.create(UUID.randomUUID(), "key-8", new Money(100, "TRY"), null).payment();
+
+		Payment succeeded = paymentService.succeed(created.id(), "acme", "ref-1");
+
+		assertThat(succeeded.version()).isEqualTo(1);
+		assertThatThrownBy(() -> paymentRepository.update(created.fail("acme", "timeout")))
+				.isInstanceOf(PaymentVersionConflictException.class);
+		assertThat(paymentService.get(created.id()))
+				.extracting(Payment::status, Payment::version)
+				.containsExactly(PaymentStatus.SUCCEEDED, 1L);
+	}
+
+	@Test
+	void concurrentUpdatesOnSameVersionLetExactlyOneWin() throws Exception {
+		Payment snapshot = paymentService.create(UUID.randomUUID(), "key-9", new Money(100, "TRY"), null).payment();
+		CountDownLatch start = new CountDownLatch(1);
+		List<Future<Payment>> futures;
+
+		try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+			futures = IntStream.range(0, 16)
+					.mapToObj(i -> executor.submit(() -> {
+						start.await();
+						return paymentRepository.update(i % 2 == 0
+								? snapshot.succeed("acme", "ref-" + i)
+								: snapshot.fail("acme", "declined-" + i));
+					}))
+					.toList();
+			start.countDown();
+		}
+
+		long winners = futures.stream().filter(f -> f.state() == Future.State.SUCCESS).count();
+		List<Throwable> losers = futures.stream()
+				.filter(f -> f.state() == Future.State.FAILED)
+				.map(Future::exceptionNow)
+				.toList();
+
+		assertThat(winners).isEqualTo(1);
+		assertThat(losers).hasSize(15).allMatch(PaymentVersionConflictException.class::isInstance);
+		assertThat(paymentService.get(snapshot.id()).version()).isEqualTo(1);
 	}
 
 	@Test

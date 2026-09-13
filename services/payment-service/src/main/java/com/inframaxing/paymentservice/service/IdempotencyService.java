@@ -1,6 +1,6 @@
 package com.inframaxing.paymentservice.service;
 
-import com.inframaxing.paymentservice.exception.IdempotencyKeyConflict;
+import com.inframaxing.paymentservice.exception.IdempotencyKeyConflictException;
 import com.inframaxing.paymentservice.model.IdempotencyRecord;
 import com.inframaxing.paymentservice.model.Money;
 import com.inframaxing.paymentservice.repository.JdbcIdempotencyStore;
@@ -43,7 +43,7 @@ public class IdempotencyService {
 				.orElseThrow(() -> new IllegalStateException("idempotency key missing after unique violation: " + key));
 		if (!record.requestHash().equals(requestHash)) {
 			count("conflict");
-			throw new IdempotencyKeyConflict(key);
+			throw new IdempotencyKeyConflictException(key);
 		}
 		count("replayed");
 		return record.paymentId();

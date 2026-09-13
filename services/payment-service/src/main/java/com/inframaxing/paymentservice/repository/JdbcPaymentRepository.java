@@ -1,5 +1,6 @@
 package com.inframaxing.paymentservice.repository;
 
+import com.inframaxing.paymentservice.exception.PaymentVersionConflictException;
 import com.inframaxing.paymentservice.model.Money;
 import com.inframaxing.paymentservice.model.Payment;
 import com.inframaxing.paymentservice.model.PaymentStatus;
@@ -56,6 +57,32 @@ public class JdbcPaymentRepository implements PaymentRepository {
 				.param("updatedAt", utc(payment.updatedAt()))
 				.param("version", payment.version())
 				.update();
+	}
+
+	@Override
+	public Payment update(Payment payment) {
+		return jdbc.sql("""
+				update payment
+				set status = :status,
+				    provider_code = :providerCode,
+				    provider_ref = :providerRef,
+				    failure_reason = :failureReason,
+				    updated_at = :updatedAt,
+				    version = version + 1
+				where id = :id and version = :version
+				returning id, merchant_id, amount_minor, currency, status, reference,
+				          provider_code, provider_ref, failure_reason, created_at, updated_at, version
+				""")
+				.param("id", payment.id())
+				.param("status", payment.status().name())
+				.param("providerCode", payment.providerCode())
+				.param("providerRef", payment.providerRef())
+				.param("failureReason", payment.failureReason())
+				.param("updatedAt", utc(payment.updatedAt()))
+				.param("version", payment.version())
+				.query(ROW_MAPPER)
+				.optional()
+				.orElseThrow(() -> new PaymentVersionConflictException(payment.id(), payment.version()));
 	}
 
 	@Override

@@ -9,5 +9,7 @@ public interface PaymentRepository {
 
 	void insert(Payment payment);
 
+	Payment update(Payment payment);
+
 	Optional<Payment> findById(UUID id);
 }

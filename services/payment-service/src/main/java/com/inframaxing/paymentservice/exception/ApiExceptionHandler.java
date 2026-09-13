@@ -9,14 +9,24 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 @RestControllerAdvice
 public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 
-	@ExceptionHandler(PaymentNotFound.class)
-	public ProblemDetail paymentNotFound(PaymentNotFound e) {
+	@ExceptionHandler(PaymentNotFoundException.class)
+	public ProblemDetail paymentNotFound(PaymentNotFoundException e) {
 		return problem(HttpStatus.NOT_FOUND, "Payment not found", e.getMessage());
 	}
 
-	@ExceptionHandler(IdempotencyKeyConflict.class)
-	public ProblemDetail idempotencyKeyConflict(IdempotencyKeyConflict e) {
+	@ExceptionHandler(IdempotencyKeyConflictException.class)
+	public ProblemDetail idempotencyKeyConflict(IdempotencyKeyConflictException e) {
 		return problem(HttpStatus.CONFLICT, "Idempotency key conflict", e.getMessage());
+	}
+
+	@ExceptionHandler(PaymentVersionConflictException.class)
+	public ProblemDetail paymentVersionConflict(PaymentVersionConflictException e) {
+		return problem(HttpStatus.CONFLICT, "Payment modified concurrently", e.getMessage());
+	}
+
+	@ExceptionHandler(InvalidPaymentTransitionException.class)
+	public ProblemDetail invalidPaymentTransition(InvalidPaymentTransitionException e) {
+		return problem(HttpStatus.CONFLICT, "Invalid payment transition", e.getMessage());
 	}
 
 	@ExceptionHandler(IllegalArgumentException.class)

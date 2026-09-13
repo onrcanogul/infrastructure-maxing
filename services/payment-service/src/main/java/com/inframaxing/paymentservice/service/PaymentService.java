@@ -1,6 +1,6 @@
 package com.inframaxing.paymentservice.service;
 
-import com.inframaxing.paymentservice.exception.PaymentNotFound;
+import com.inframaxing.paymentservice.exception.PaymentNotFoundException;
 import com.inframaxing.paymentservice.model.Money;
 import com.inframaxing.paymentservice.model.Payment;
 import com.inframaxing.paymentservice.model.PaymentCreation;
@@ -47,7 +47,15 @@ public class PaymentService {
 		return new PaymentCreation(payment, false);
 	}
 
+	public Payment succeed(UUID id, String providerCode, String providerRef) {
+		return repository.update(get(id).succeed(providerCode, providerRef));
+	}
+
+	public Payment fail(UUID id, String providerCode, String failureReason) {
+		return repository.update(get(id).fail(providerCode, failureReason));
+	}
+
 	public Payment get(UUID id) {
-		return repository.findById(id).orElseThrow(() -> new PaymentNotFound(id));
+		return repository.findById(id).orElseThrow(() -> new PaymentNotFoundException(id));
 	}
 }

@@ -2,11 +2,11 @@ package com.inframaxing.paymentservice.exception;
 
 import java.util.UUID;
 
-public class PaymentNotFound extends RuntimeException {
+public class PaymentNotFoundException extends RuntimeException {
 
 	private final UUID paymentId;
 
-	public PaymentNotFound(UUID paymentId) {
+	public PaymentNotFoundException(UUID paymentId) {
 		super("payment not found: " + paymentId);
 		this.paymentId = paymentId;
 	}
