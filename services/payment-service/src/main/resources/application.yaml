@@ -1,3 +1,41 @@
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+
 spring:
   application:
-    name: payment-service
+    name: ${APP_NAME:payment-service}
+  threads:
+    virtual:
+      enabled: ${VIRTUAL_THREADS_ENABLED:true}
+  lifecycle:
+    timeout-per-shutdown-phase: ${SHUTDOWN_TIMEOUT:20s}
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/payments}
+    username: ${DB_USERNAME:payments}
+    password: ${DB_PASSWORD:payments}
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:10}
+      minimum-idle: ${DB_POOL_MIN_IDLE:2}
+      connection-timeout: ${DB_CONNECTION_TIMEOUT_MS:3000}
+  flyway:
+    enabled: ${FLYWAY_ENABLED:true}
+    locations: ${FLYWAY_LOCATIONS:classpath:db/scripts}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: ${MANAGEMENT_ENDPOINTS:health,info,prometheus}
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: ${HEALTH_SHOW_DETAILS:never}
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: ${HTTP_HISTOGRAM_ENABLED:true}
+
+app:
+  environment: ${APP_ENV:local}
