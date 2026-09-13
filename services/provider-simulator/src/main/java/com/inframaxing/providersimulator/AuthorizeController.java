@@ -1,43 +1,56 @@
 package com.inframaxing.providersimulator;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import java.util.UUID;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * The one endpoint that matters: authorize a payment, slowly.
- *
- * <p>The response shape is what PaymentProviderClient in payment-service reads back, and matches
- * the WireMock stub this service replaces.
- */
 @RestController
 public class AuthorizeController {
+
+	private final Cache<String, Authorization> seen;
 
 	private final SimulatorSettings settings;
 
 	public AuthorizeController(SimulatorSettings settings) {
 		this.settings = settings;
+		this.seen = Caffeine.newBuilder()
+				.expireAfterWrite(settings.idempotency().ttl())
+				.maximumSize(settings.idempotency().maxEntries())
+				.build();
 	}
 
-	@PostMapping("/authorize")
-	public Decision authorize(@RequestBody AuthorizeRequest request) throws InterruptedException {
-		// The point of the whole service. Virtual threads make this cheap to hold at high rates.
+	@PostMapping("/providers/{code}/authorize")
+	public Authorization authorize(
+			@PathVariable String code,
+			@RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey,
+			@RequestBody(required = false) AuthorizeRequest request) throws InterruptedException {
+
 		Thread.sleep(settings.latency());
 
-		return settings.approve()
-				? new Decision(true, "00", "sim-" + UUID.randomUUID(), null)
-				: new Decision(false, "51", null, "insufficient funds");
+		if (idempotencyKey == null || idempotencyKey.isBlank()) {
+			return decide();
+		}
+		return seen.get(code + "|" + idempotencyKey, key -> decide());
 	}
 
-	/**
-	 * What payment-service sends. Fields it does not send are simply absent - the simulator does not
-	 * validate its caller, because a real provider's validation is not what we are measuring.
-	 */
+	private Authorization decide() {
+		return new Authorization("sim-" + UUID.randomUUID(),
+				settings.approve() ? Outcome.APPROVED : Outcome.DECLINED);
+	}
+
+	public record Authorization(String providerRef, Outcome outcome) {
+	}
+
+	public enum Outcome {
+		APPROVED,
+		DECLINED
+	}
+
 	public record AuthorizeRequest(UUID paymentId, long amountMinor, String currency) {
-	}
-
-	/** What payment-service reads back, field for field. */
-	public record Decision(boolean approved, String code, String reference, String reason) {
 	}
 }

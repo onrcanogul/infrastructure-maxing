@@ -18,8 +18,6 @@
 		<java.version>25</java.version>
 	</properties>
 
-	<!-- A test tool, not an example of architecture. No database, no layers, one package.
-	     Every dependency added here has to earn its place. -->
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -28,6 +26,10 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.github.ben-manes.caffeine</groupId>
+			<artifactId>caffeine</artifactId>
 		</dependency>
 
 		<dependency>

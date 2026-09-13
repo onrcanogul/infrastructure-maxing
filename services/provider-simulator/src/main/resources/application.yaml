@@ -3,9 +3,6 @@ spring:
     name: provider-simulator
   threads:
     virtual:
-      # Every request parks for app.simulator.latency. On platform threads the simulator would run
-      # out of threads long before payment-service ran out of connections, and the lab would be
-      # measuring the wrong ceiling.
       enabled: ${PAYROUTE_SIM_VIRTUAL_THREADS:true}
 
 server:
@@ -16,6 +13,9 @@ app:
   simulator:
     latency: ${PAYROUTE_SIM_LATENCY:200ms}
     approve: ${PAYROUTE_SIM_APPROVE:true}
+    idempotency:
+      ttl: ${PAYROUTE_SIM_IDEMPOTENCY_TTL:10m}
+      max-entries: ${PAYROUTE_SIM_IDEMPOTENCY_MAX_ENTRIES:100000}
 
 management:
   endpoints:
