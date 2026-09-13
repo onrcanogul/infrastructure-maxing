@@ -1,0 +1,16 @@
+# Only pom.xml and src/ are needed to build; everything else stays out of the build context.
+target/
+.git
+.gitignore
+.gitattributes
+.idea/
+*.iml
+.vscode/
+.mvn/
+mvnw
+mvnw.cmd
+HELP.md
+Dockerfile
+.dockerignore
+**/.DS_Store
+.env
