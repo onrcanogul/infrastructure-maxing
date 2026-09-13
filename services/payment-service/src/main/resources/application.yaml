@@ -9,7 +9,7 @@ spring:
     virtual:
       enabled: ${PAYROUTE_VIRTUAL_THREADS_ENABLED:true}
   lifecycle:
-    timeout-per-shutdown-phase: ${PAYROUTE_SHUTDOWN_TIMEOUT:20s}
+    timeout-per-shutdown-phase: ${PAYROUTE_SHUTDOWN_TIMEOUT:30s}
   datasource:
     url: ${PAYROUTE_DB_URL:jdbc:postgresql://${PAYROUTE_DB_HOST:localhost}:${PAYROUTE_DB_PORT:5432}/${PAYROUTE_DB_NAME:payments}}
     username: ${PAYROUTE_DB_USERNAME:payments}
@@ -48,6 +48,11 @@ management:
       probes:
         enabled: ${PAYROUTE_HEALTH_PROBES_ENABLED:true}
       show-details: ${PAYROUTE_HEALTH_SHOW_DETAILS:never}
+      group:
+        liveness:
+          include: ${PAYROUTE_HEALTH_LIVENESS_INCLUDE:livenessState}
+        readiness:
+          include: ${PAYROUTE_HEALTH_READINESS_INCLUDE:readinessState,db}
   metrics:
     distribution:
       percentiles-histogram:
