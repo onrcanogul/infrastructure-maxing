@@ -1,0 +1,9 @@
+{
+  "request": { "method": "POST", "url": "/authorize" },
+  "response": {
+    "status": 200,
+    "fixedDelayMilliseconds": 200,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": { "approved": true, "code": "00", "reference": "stub-auth" }
+  }
+}

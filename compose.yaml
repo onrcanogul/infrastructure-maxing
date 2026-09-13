@@ -15,5 +15,38 @@ services:
       timeout: 3s
       retries: 10
 
+  # --- lab profile: `docker compose --profile lab up -d --build` -----------------------
+  # A fake payment provider that answers every authorization after 200 ms, standing in for
+  # the network wait (notes/06-transaction-boundary.txt).
+  provider-stub:
+    image: wiremock/wiremock:3.13.1
+    profiles: ["lab"]
+    command:
+      - --async-response-enabled=true
+      - --async-response-threads=200
+      - --container-threads=500
+      - --no-request-journal
+      - --disable-request-logging
+    volumes:
+      - ./load/provider-stub:/home/wiremock/mappings:ro
+    ports:
+      - "8089:8080"
+
+  payment-service:
+    build: ./services/payment-service
+    profiles: ["lab"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PAYROUTE_DB_HOST: postgres
+      PAYROUTE_DB_USERNAME: ${PAYROUTE_DB_USERNAME:-payments}
+      PAYROUTE_DB_PASSWORD: ${PAYROUTE_DB_PASSWORD:-payments}
+      PAYROUTE_ENV: lab
+      PAYROUTE_LAB_ENABLED: "true"
+      PAYROUTE_PROVIDER_BASE_URL: http://provider-stub:8080
+    ports:
+      - "8080:8080"
+
 volumes:
   postgres-data:

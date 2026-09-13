@@ -60,3 +60,9 @@ management:
 
 app:
   environment: ${PAYROUTE_ENV:local}
+  provider:
+    base-url: ${PAYROUTE_PROVIDER_BASE_URL:http://localhost:8089}
+    connect-timeout: ${PAYROUTE_PROVIDER_CONNECT_TIMEOUT:1s}
+    read-timeout: ${PAYROUTE_PROVIDER_READ_TIMEOUT:3s}
+  lab:
+    enabled: ${PAYROUTE_LAB_ENABLED:false}
