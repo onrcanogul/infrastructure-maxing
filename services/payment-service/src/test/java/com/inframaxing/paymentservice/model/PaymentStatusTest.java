@@ -33,7 +33,27 @@ class PaymentStatusTest {
 			"VOIDED,     AUTHORIZED, false",
 			"VOIDED,     CAPTURED,   false",
 			"VOIDED,     FAILED,     false",
-			"VOIDED,     VOIDED,     false"
+			"VOIDED,     VOIDED,     false",
+			"CREATED,     AUTHORIZING, true",
+			"CREATED,     TIMEOUT,     false",
+			"AUTHORIZING, AUTHORIZED,  true",
+			"AUTHORIZING, FAILED,      true",
+			"AUTHORIZING, TIMEOUT,     true",
+			"AUTHORIZING, CREATED,     false",
+			"AUTHORIZING, AUTHORIZING, false",
+			"AUTHORIZING, CAPTURED,    false",
+			"AUTHORIZING, VOIDED,      false",
+			"TIMEOUT,     AUTHORIZED,  false",
+			"TIMEOUT,     FAILED,      false",
+			"TIMEOUT,     TIMEOUT,     false",
+			"TIMEOUT,     AUTHORIZING, false",
+			"TIMEOUT,     CAPTURED,    false",
+			"TIMEOUT,     VOIDED,      false",
+			"TIMEOUT,     CREATED,     false",
+			"AUTHORIZED,  TIMEOUT,     false",
+			"CAPTURED,    TIMEOUT,     false",
+			"FAILED,      TIMEOUT,     false",
+			"VOIDED,      TIMEOUT,     false"
 	})
 	void transitionTable(PaymentStatus from, PaymentStatus to, boolean allowed) {
 		assertThat(from.canTransitionTo(to)).isEqualTo(allowed);

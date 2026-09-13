@@ -25,13 +25,22 @@ class ProviderTimeoutIT extends IntegrationTestSupport {
 		assertThat(elapsedMs).isLessThan(3_000);
 		assertThat(paymentCount(merchantId)).isEqualTo(1);
 		assertThat(idempotencyKeyCount(merchantId)).isEqualTo(1);
-		assertThat(statusOf(merchantId)).isEqualTo(PaymentStatus.AUTHORIZING.name());
+		assertThat(statusOf(merchantId)).isEqualTo(PaymentStatus.TIMEOUT.name());
+		assertThat(failureReasonOf(merchantId)).isEqualTo("provider did not answer in time");
 
 		ProviderStub.release();
 	}
 
 	private String statusOf(UUID merchantId) {
-		return jdbc.sql("select status from payment where merchant_id = :merchantId")
+		return column(merchantId, "status");
+	}
+
+	private String failureReasonOf(UUID merchantId) {
+		return column(merchantId, "failure_reason");
+	}
+
+	private String column(UUID merchantId, String name) {
+		return jdbc.sql("select " + name + " from payment where merchant_id = :merchantId")
 				.param("merchantId", merchantId)
 				.query(String.class)
 				.single();

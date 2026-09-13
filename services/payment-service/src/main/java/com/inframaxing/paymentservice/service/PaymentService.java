@@ -2,6 +2,7 @@ package com.inframaxing.paymentservice.service;
 
 import com.inframaxing.paymentservice.exception.IdempotencyKeyConflictException;
 import com.inframaxing.paymentservice.exception.PaymentNotFoundException;
+import com.inframaxing.paymentservice.exception.ProviderCallFailedException;
 import com.inframaxing.paymentservice.metrics.PaymentMetrics;
 import com.inframaxing.paymentservice.model.Money;
 import com.inframaxing.paymentservice.model.Payment;
@@ -19,6 +20,8 @@ import java.util.function.Consumer;
 
 @Service
 public class PaymentService {
+
+	static final String TIMEOUT_REASON = "provider did not answer in time";
 
 	private final PaymentRepository repository;
 	private final IdempotencyService idempotency;
@@ -50,7 +53,15 @@ public class PaymentService {
 			return replay(merchantId, idempotencyKey, requestHash);
 		}
 
-		applyProviderDecision(payment);
+		try {
+			applyProviderDecision(payment);
+		} catch (ProviderCallFailedException e) {
+			if (e.timedOut()) {
+				payment.timedOut(provider.code(), TIMEOUT_REASON);
+				transactions.executeWithoutResult(status -> repository.update(payment));
+			}
+			throw e;
+		}
 		transactions.executeWithoutResult(status -> repository.update(payment));
 
 		metrics.created(money);

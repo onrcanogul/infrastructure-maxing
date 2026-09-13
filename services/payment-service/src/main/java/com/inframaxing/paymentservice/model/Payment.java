@@ -78,6 +78,14 @@ public class Payment {
 		this.failureReason = failureReason;
 	}
 
+	public void timedOut(String providerCode, String failureReason) {
+		Objects.requireNonNull(providerCode, "providerCode");
+		Objects.requireNonNull(failureReason, "failureReason");
+		transitionTo(PaymentStatus.TIMEOUT);
+		this.providerCode = providerCode;
+		this.failureReason = failureReason;
+	}
+
 	void transitionTo(PaymentStatus target) {
 		Objects.requireNonNull(target, "target");
 		if (!status.canTransitionTo(target)) {
