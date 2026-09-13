@@ -51,7 +51,7 @@ class PaymentServiceApplicationTests {
 	PaymentRepository paymentRepository;
 
 	@Test
-	void createsPendingPayment() {
+	void createsPayment() {
 		UUID merchantId = UUID.randomUUID();
 
 		PaymentResponse created = post("key-1", request(merchantId, 1250, "TRY", "order-1"))
@@ -62,7 +62,7 @@ class PaymentServiceApplicationTests {
 				.getResponseBody();
 
 		assertThat(created).isNotNull();
-		assertThat(created.status()).isEqualTo(PaymentStatus.PENDING);
+		assertThat(created.status()).isEqualTo(PaymentStatus.CREATED);
 		assertThat(created.amountMinor()).isEqualTo(1250);
 		assertThat(created.currency()).isEqualTo("TRY");
 
@@ -135,31 +135,50 @@ class PaymentServiceApplicationTests {
 
 	@Test
 	void staleVersionUpdateIsRejected() {
-		Payment created = paymentService.create(UUID.randomUUID(), "key-8", new Money(100, "TRY"), null).payment();
+		UUID id = paymentService.create(UUID.randomUUID(), "key-8", new Money(100, "TRY"), null).payment().id();
+		Payment stale = paymentService.get(id);
 
-		Payment succeeded = paymentService.succeed(created.id(), "acme", "ref-1");
+		Payment authorized = paymentService.authorize(id, "acme", "ref-1");
+		stale.fail("acme", "timeout");
 
-		assertThat(succeeded.version()).isEqualTo(1);
-		assertThatThrownBy(() -> paymentRepository.update(created.fail("acme", "timeout")))
+		assertThat(authorized.version()).isEqualTo(1);
+		assertThatThrownBy(() -> paymentRepository.update(stale))
 				.isInstanceOf(PaymentVersionConflictException.class);
-		assertThat(paymentService.get(created.id()))
+		assertThat(paymentService.get(id))
 				.extracting(Payment::status, Payment::version)
-				.containsExactly(PaymentStatus.SUCCEEDED, 1L);
+				.containsExactly(PaymentStatus.AUTHORIZED, 1L);
+	}
+
+	@Test
+	void fullLifecycleIncrementsVersion() {
+		UUID id = paymentService.create(UUID.randomUUID(), "key-10", new Money(100, "TRY"), null).payment().id();
+
+		paymentService.authorize(id, "acme", "ref-1");
+		Payment captured = paymentService.capture(id);
+
+		assertThat(captured)
+				.extracting(Payment::status, Payment::providerRef, Payment::version)
+				.containsExactly(PaymentStatus.CAPTURED, "ref-1", 2L);
 	}
 
 	@Test
 	void concurrentUpdatesOnSameVersionLetExactlyOneWin() throws Exception {
-		Payment snapshot = paymentService.create(UUID.randomUUID(), "key-9", new Money(100, "TRY"), null).payment();
+		UUID id = paymentService.create(UUID.randomUUID(), "key-9", new Money(100, "TRY"), null).payment().id();
+		List<Payment> copies = IntStream.range(0, 16).mapToObj(i -> paymentService.get(id)).toList();
 		CountDownLatch start = new CountDownLatch(1);
 		List<Future<Payment>> futures;
 
 		try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
 			futures = IntStream.range(0, 16)
 					.mapToObj(i -> executor.submit(() -> {
+						Payment copy = copies.get(i);
+						if (i % 2 == 0) {
+							copy.authorize("acme", "ref-" + i);
+						} else {
+							copy.fail("acme", "declined-" + i);
+						}
 						start.await();
-						return paymentRepository.update(i % 2 == 0
-								? snapshot.succeed("acme", "ref-" + i)
-								: snapshot.fail("acme", "declined-" + i));
+						return paymentRepository.update(copy);
 					}))
 					.toList();
 			start.countDown();
@@ -173,7 +192,7 @@ class PaymentServiceApplicationTests {
 
 		assertThat(winners).isEqualTo(1);
 		assertThat(losers).hasSize(15).allMatch(PaymentVersionConflictException.class::isInstance);
-		assertThat(paymentService.get(snapshot.id()).version()).isEqualTo(1);
+		assertThat(paymentService.get(id).version()).isEqualTo(1);
 	}
 
 	@Test

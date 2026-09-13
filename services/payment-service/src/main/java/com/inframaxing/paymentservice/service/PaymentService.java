@@ -12,6 +12,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.UUID;
+import java.util.function.Consumer;
 
 @Service
 public class PaymentService {
@@ -31,7 +32,7 @@ public class PaymentService {
 
 	public PaymentCreation create(UUID merchantId, String idempotencyKey, Money money, String reference) {
 		String requestHash = idempotency.requestHash(merchantId, money, reference);
-		Payment payment = Payment.pending(merchantId, money, reference);
+		Payment payment = Payment.create(merchantId, money, reference);
 
 		try {
 			transactions.executeWithoutResult(status -> {
@@ -47,12 +48,26 @@ public class PaymentService {
 		return new PaymentCreation(payment, false);
 	}
 
-	public Payment succeed(UUID id, String providerCode, String providerRef) {
-		return repository.update(get(id).succeed(providerCode, providerRef));
+	public Payment authorize(UUID id, String providerCode, String providerRef) {
+		return change(id, payment -> payment.authorize(providerCode, providerRef));
+	}
+
+	public Payment capture(UUID id) {
+		return change(id, Payment::capture);
+	}
+
+	public Payment voidAuthorization(UUID id) {
+		return change(id, Payment::voidAuthorization);
 	}
 
 	public Payment fail(UUID id, String providerCode, String failureReason) {
-		return repository.update(get(id).fail(providerCode, failureReason));
+		return change(id, payment -> payment.fail(providerCode, failureReason));
+	}
+
+	private Payment change(UUID id, Consumer<Payment> transition) {
+		Payment payment = get(id);
+		transition.accept(payment);
+		return repository.update(payment);
 	}
 
 	public Payment get(UUID id) {

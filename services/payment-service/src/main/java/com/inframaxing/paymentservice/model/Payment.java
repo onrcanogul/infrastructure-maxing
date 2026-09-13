@@ -7,53 +7,139 @@ import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.UUID;
 
-public record Payment(
-		UUID id,
-		UUID merchantId,
-		Money money,
-		PaymentStatus status,
-		String reference,
-		String providerCode,
-		String providerRef,
-		String failureReason,
-		Instant createdAt,
-		Instant updatedAt,
-		long version
-) {
+public class Payment {
 
-	public Payment {
-		Objects.requireNonNull(id, "id");
-		Objects.requireNonNull(merchantId, "merchantId");
-		Objects.requireNonNull(money, "money");
-		Objects.requireNonNull(status, "status");
-		Objects.requireNonNull(createdAt, "createdAt");
-		Objects.requireNonNull(updatedAt, "updatedAt");
+	private final UUID id;
+	private final UUID merchantId;
+	private final Money money;
+	private final String reference;
+	private final Instant createdAt;
+	private final long version;
+	private PaymentStatus status;
+	private String providerCode;
+	private String providerRef;
+	private String failureReason;
+	private Instant updatedAt;
+
+	private Payment(UUID id, UUID merchantId, Money money, PaymentStatus status, String reference,
+			String providerCode, String providerRef, String failureReason,
+			Instant createdAt, Instant updatedAt, long version) {
+		this.id = Objects.requireNonNull(id, "id");
+		this.merchantId = Objects.requireNonNull(merchantId, "merchantId");
+		this.money = Objects.requireNonNull(money, "money");
+		this.status = Objects.requireNonNull(status, "status");
+		this.reference = reference;
+		this.providerCode = providerCode;
+		this.providerRef = providerRef;
+		this.failureReason = failureReason;
+		this.createdAt = Objects.requireNonNull(createdAt, "createdAt");
+		this.updatedAt = Objects.requireNonNull(updatedAt, "updatedAt");
+		this.version = version;
 	}
 
-	public static Payment pending(UUID merchantId, Money money, String reference) {
+	public static Payment create(UUID merchantId, Money money, String reference) {
 		Instant now = now();
-		return new Payment(UUID.randomUUID(), merchantId, money, PaymentStatus.PENDING,
+		return new Payment(UUID.randomUUID(), merchantId, money, PaymentStatus.CREATED,
 				reference, null, null, null, now, now, 0);
 	}
 
-	public Payment succeed(String providerCode, String providerRef) {
+	public static Payment restore(UUID id, UUID merchantId, Money money, PaymentStatus status, String reference,
+			String providerCode, String providerRef, String failureReason,
+			Instant createdAt, Instant updatedAt, long version) {
+		return new Payment(id, merchantId, money, status, reference,
+				providerCode, providerRef, failureReason, createdAt, updatedAt, version);
+	}
+
+	public void authorize(String providerCode, String providerRef) {
 		Objects.requireNonNull(providerCode, "providerCode");
 		Objects.requireNonNull(providerRef, "providerRef");
-		return transition(PaymentStatus.SUCCEEDED, providerCode, providerRef, null);
+		transitionTo(PaymentStatus.AUTHORIZED);
+		this.providerCode = providerCode;
+		this.providerRef = providerRef;
 	}
 
-	public Payment fail(String providerCode, String failureReason) {
+	public void capture() {
+		transitionTo(PaymentStatus.CAPTURED);
+	}
+
+	public void voidAuthorization() {
+		transitionTo(PaymentStatus.VOIDED);
+	}
+
+	public void fail(String providerCode, String failureReason) {
 		Objects.requireNonNull(providerCode, "providerCode");
 		Objects.requireNonNull(failureReason, "failureReason");
-		return transition(PaymentStatus.FAILED, providerCode, providerRef, failureReason);
+		transitionTo(PaymentStatus.FAILED);
+		this.providerCode = providerCode;
+		this.failureReason = failureReason;
 	}
 
-	private Payment transition(PaymentStatus target, String providerCode, String providerRef, String failureReason) {
-		if (status != PaymentStatus.PENDING) {
+	void transitionTo(PaymentStatus target) {
+		Objects.requireNonNull(target, "target");
+		if (!status.canTransitionTo(target)) {
 			throw new InvalidPaymentTransitionException(id, status, target);
 		}
-		return new Payment(id, merchantId, money, target, reference,
-				providerCode, providerRef, failureReason, createdAt, now(), version);
+		this.status = target;
+		this.updatedAt = now();
+	}
+
+	public UUID id() {
+		return id;
+	}
+
+	public UUID merchantId() {
+		return merchantId;
+	}
+
+	public Money money() {
+		return money;
+	}
+
+	public PaymentStatus status() {
+		return status;
+	}
+
+	public String reference() {
+		return reference;
+	}
+
+	public String providerCode() {
+		return providerCode;
+	}
+
+	public String providerRef() {
+		return providerRef;
+	}
+
+	public String failureReason() {
+		return failureReason;
+	}
+
+	public Instant createdAt() {
+		return createdAt;
+	}
+
+	public Instant updatedAt() {
+		return updatedAt;
+	}
+
+	public long version() {
+		return version;
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		return this == o || (o instanceof Payment other && id.equals(other.id));
+	}
+
+	@Override
+	public int hashCode() {
+		return id.hashCode();
+	}
+
+	@Override
+	public String toString() {
+		return "Payment[id=" + id + ", status=" + status + ", version=" + version + "]";
 	}
 
 	private static Instant now() {

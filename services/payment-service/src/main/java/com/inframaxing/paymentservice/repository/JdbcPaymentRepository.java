@@ -17,7 +17,7 @@ import java.util.UUID;
 @Repository
 public class JdbcPaymentRepository implements PaymentRepository {
 
-	private static final RowMapper<Payment> ROW_MAPPER = (rs, rowNum) -> new Payment(
+	private static final RowMapper<Payment> ROW_MAPPER = (rs, rowNum) -> Payment.restore(
 			rs.getObject("id", UUID.class),
 			rs.getObject("merchant_id", UUID.class),
 			new Money(rs.getLong("amount_minor"), rs.getString("currency")),
