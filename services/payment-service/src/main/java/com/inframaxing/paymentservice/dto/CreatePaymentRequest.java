@@ -1,4 +1,4 @@
-package com.inframaxing.paymentservice.api;
+package com.inframaxing.paymentservice.dto;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;

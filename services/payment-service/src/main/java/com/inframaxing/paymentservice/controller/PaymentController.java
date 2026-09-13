@@ -1,8 +1,10 @@
-package com.inframaxing.paymentservice.api;
+package com.inframaxing.paymentservice.controller;
 
-import com.inframaxing.paymentservice.application.PaymentService;
-import com.inframaxing.paymentservice.domain.Money;
-import com.inframaxing.paymentservice.domain.Payment;
+import com.inframaxing.paymentservice.dto.CreatePaymentRequest;
+import com.inframaxing.paymentservice.dto.PaymentResponse;
+import com.inframaxing.paymentservice.model.Money;
+import com.inframaxing.paymentservice.model.PaymentCreation;
+import com.inframaxing.paymentservice.service.PaymentService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -20,11 +22,10 @@ import java.net.URI;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/payments")
+@RequestMapping("/v1/payments")
 public class PaymentController {
 
 	public static final String IDEMPOTENCY_KEY = "Idempotency-Key";
-	public static final String IDEMPOTENT_REPLAYED = "Idempotent-Replayed";
 
 	private final PaymentService paymentService;
 
@@ -36,19 +37,20 @@ public class PaymentController {
 	public ResponseEntity<PaymentResponse> create(
 			@RequestHeader(IDEMPOTENCY_KEY) @NotBlank @Size(max = 64) String idempotencyKey,
 			@Valid @RequestBody CreatePaymentRequest request) {
-		PaymentService.Creation creation = paymentService.create(
+		PaymentCreation creation = paymentService.create(
 				request.merchantId(),
 				idempotencyKey,
 				new Money(request.amountMinor(), request.currency()),
 				request.reference());
-		Payment payment = creation.payment();
+		PaymentResponse body = PaymentResponse.from(creation.payment());
+		if (creation.replayed()) {
+			return ResponseEntity.ok(body);
+		}
 		URI location = ServletUriComponentsBuilder.fromCurrentRequest()
 				.path("/{id}")
-				.buildAndExpand(payment.id())
+				.buildAndExpand(body.id())
 				.toUri();
-		return ResponseEntity.created(location)
-				.header(IDEMPOTENT_REPLAYED, String.valueOf(creation.replayed()))
-				.body(PaymentResponse.from(payment));
+		return ResponseEntity.created(location).body(body);
 	}
 
 	@GetMapping("/{id}")

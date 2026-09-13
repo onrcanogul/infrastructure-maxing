@@ -1,4 +1,4 @@
-package com.inframaxing.paymentservice.domain;
+package com.inframaxing.paymentservice.model;
 
 public enum PaymentStatus {
 	PENDING,

@@ -1,4 +1,4 @@
-package com.inframaxing.paymentservice.infrastructure;
+package com.inframaxing.paymentservice.config;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.beans.factory.annotation.Value;

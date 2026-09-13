@@ -1,9 +1,8 @@
-package com.inframaxing.paymentservice.infrastructure;
+package com.inframaxing.paymentservice.repository;
 
-import com.inframaxing.paymentservice.application.PaymentRepository;
-import com.inframaxing.paymentservice.domain.Money;
-import com.inframaxing.paymentservice.domain.Payment;
-import com.inframaxing.paymentservice.domain.PaymentStatus;
+import com.inframaxing.paymentservice.model.Money;
+import com.inframaxing.paymentservice.model.Payment;
+import com.inframaxing.paymentservice.model.PaymentStatus;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;

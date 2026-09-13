@@ -1,7 +1,5 @@
-package com.inframaxing.paymentservice.api;
+package com.inframaxing.paymentservice.exception;
 
-import com.inframaxing.paymentservice.application.IdempotencyService;
-import com.inframaxing.paymentservice.domain.PaymentNotFound;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -16,9 +14,9 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 		return problem(HttpStatus.NOT_FOUND, "Payment not found", e.getMessage());
 	}
 
-	@ExceptionHandler(IdempotencyService.KeyReusedException.class)
-	public ProblemDetail idempotencyKeyReused(IdempotencyService.KeyReusedException e) {
-		return problem(HttpStatus.UNPROCESSABLE_CONTENT, "Idempotency key reused", e.getMessage());
+	@ExceptionHandler(IdempotencyKeyConflict.class)
+	public ProblemDetail idempotencyKeyConflict(IdempotencyKeyConflict e) {
+		return problem(HttpStatus.CONFLICT, "Idempotency key conflict", e.getMessage());
 	}
 
 	@ExceptionHandler(IllegalArgumentException.class)

@@ -1,7 +1,7 @@
-package com.inframaxing.paymentservice.api;
+package com.inframaxing.paymentservice.dto;
 
-import com.inframaxing.paymentservice.domain.Payment;
-import com.inframaxing.paymentservice.domain.PaymentStatus;
+import com.inframaxing.paymentservice.model.Payment;
+import com.inframaxing.paymentservice.model.PaymentStatus;
 
 import java.time.Instant;
 import java.util.UUID;
