@@ -57,6 +57,7 @@ management:
     distribution:
       percentiles-histogram:
         http.server.requests: ${PAYROUTE_HTTP_HISTOGRAM_ENABLED:true}
+        provider.call.duration: ${PAYROUTE_PROVIDER_HISTOGRAM_ENABLED:true}
 
 app:
   environment: ${PAYROUTE_ENV:local}
