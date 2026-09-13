@@ -1,57 +1,57 @@
 server:
-  port: ${SERVER_PORT:8080}
-  shutdown: graceful
+  port: ${PAYROUTE_SERVER_PORT:8080}
+  shutdown: ${PAYROUTE_SERVER_SHUTDOWN:graceful}
 
 spring:
   application:
-    name: ${APP_NAME:payment-service}
+    name: ${PAYROUTE_APP_NAME:payment-service}
   threads:
     virtual:
-      enabled: ${VIRTUAL_THREADS_ENABLED:true}
+      enabled: ${PAYROUTE_VIRTUAL_THREADS_ENABLED:true}
   lifecycle:
-    timeout-per-shutdown-phase: ${SHUTDOWN_TIMEOUT:20s}
+    timeout-per-shutdown-phase: ${PAYROUTE_SHUTDOWN_TIMEOUT:20s}
   datasource:
-    url: ${DB_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:payments}}
-    username: ${DB_USERNAME:payments}
-    password: ${DB_PASSWORD:payments}
-    driver-class-name: org.postgresql.Driver
+    url: ${PAYROUTE_DB_URL:jdbc:postgresql://${PAYROUTE_DB_HOST:localhost}:${PAYROUTE_DB_PORT:5432}/${PAYROUTE_DB_NAME:payments}}
+    username: ${PAYROUTE_DB_USERNAME:payments}
+    password: ${PAYROUTE_DB_PASSWORD:payments}
+    driver-class-name: ${PAYROUTE_DB_DRIVER:org.postgresql.Driver}
     hikari:
-      pool-name: ${DB_POOL_NAME:payment-db}
-      maximum-pool-size: ${DB_POOL_MAX_SIZE:10}
-      minimum-idle: ${DB_POOL_MIN_IDLE:2}
-      connection-timeout: ${DB_CONNECTION_TIMEOUT_MS:3000}
-      validation-timeout: ${DB_VALIDATION_TIMEOUT_MS:1000}
-      idle-timeout: ${DB_IDLE_TIMEOUT_MS:600000}
-      max-lifetime: ${DB_MAX_LIFETIME_MS:1800000}
-      keepalive-time: ${DB_KEEPALIVE_TIME_MS:300000}
-      leak-detection-threshold: ${DB_LEAK_DETECTION_MS:0}
+      pool-name: ${PAYROUTE_DB_POOL_NAME:payment-db}
+      maximum-pool-size: ${PAYROUTE_DB_POOL_MAX_SIZE:10}
+      minimum-idle: ${PAYROUTE_DB_POOL_MIN_IDLE:2}
+      connection-timeout: ${PAYROUTE_DB_CONNECTION_TIMEOUT_MS:3000}
+      validation-timeout: ${PAYROUTE_DB_VALIDATION_TIMEOUT_MS:1000}
+      idle-timeout: ${PAYROUTE_DB_IDLE_TIMEOUT_MS:600000}
+      max-lifetime: ${PAYROUTE_DB_MAX_LIFETIME_MS:1800000}
+      keepalive-time: ${PAYROUTE_DB_KEEPALIVE_TIME_MS:300000}
+      leak-detection-threshold: ${PAYROUTE_DB_LEAK_DETECTION_MS:0}
       data-source-properties:
         ApplicationName: ${spring.application.name}
-        connectTimeout: ${DB_CONNECT_TIMEOUT_S:5}
-        socketTimeout: ${DB_SOCKET_TIMEOUT_S:30}
-        tcpKeepAlive: true
-        reWriteBatchedInserts: true
-        options: -c statement_timeout=${DB_STATEMENT_TIMEOUT_MS:5000}
+        connectTimeout: ${PAYROUTE_DB_CONNECT_TIMEOUT_S:5}
+        socketTimeout: ${PAYROUTE_DB_SOCKET_TIMEOUT_S:30}
+        tcpKeepAlive: ${PAYROUTE_DB_TCP_KEEPALIVE:true}
+        reWriteBatchedInserts: ${PAYROUTE_DB_REWRITE_BATCHED_INSERTS:true}
+        options: -c statement_timeout=${PAYROUTE_DB_STATEMENT_TIMEOUT_MS:5000}
   flyway:
-    enabled: ${FLYWAY_ENABLED:true}
-    locations: ${FLYWAY_LOCATIONS:classpath:db/scripts}
-    connect-retries: ${FLYWAY_CONNECT_RETRIES:10}
-    connect-retries-interval: ${FLYWAY_CONNECT_RETRIES_INTERVAL:3s}
+    enabled: ${PAYROUTE_FLYWAY_ENABLED:true}
+    locations: ${PAYROUTE_FLYWAY_LOCATIONS:classpath:db/scripts}
+    connect-retries: ${PAYROUTE_FLYWAY_CONNECT_RETRIES:10}
+    connect-retries-interval: ${PAYROUTE_FLYWAY_CONNECT_RETRIES_INTERVAL:3s}
 
 management:
   endpoints:
     web:
       exposure:
-        include: ${MANAGEMENT_ENDPOINTS:health,info,prometheus}
+        include: ${PAYROUTE_MANAGEMENT_ENDPOINTS:health,info,prometheus}
   endpoint:
     health:
       probes:
-        enabled: true
-      show-details: ${HEALTH_SHOW_DETAILS:never}
+        enabled: ${PAYROUTE_HEALTH_PROBES_ENABLED:true}
+      show-details: ${PAYROUTE_HEALTH_SHOW_DETAILS:never}
   metrics:
     distribution:
       percentiles-histogram:
-        http.server.requests: ${HTTP_HISTOGRAM_ENABLED:true}
+        http.server.requests: ${PAYROUTE_HTTP_HISTOGRAM_ENABLED:true}
 
 app:
-  environment: ${APP_ENV:local}
+  environment: ${PAYROUTE_ENV:local}
