@@ -22,9 +22,10 @@ import java.net.URI;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/v1/payments")
+@RequestMapping(PaymentController.BASE_PATH)
 public class PaymentController {
 
+	public static final String BASE_PATH = "/v1/payments";
 	public static final String IDEMPOTENCY_KEY = "Idempotency-Key";
 
 	private final PaymentService paymentService;

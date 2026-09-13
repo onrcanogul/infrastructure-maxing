@@ -57,8 +57,8 @@ class PaymentApiIT extends IntegrationTestSupport {
 				.getResponseBody();
 
 		assertThat(metrics)
-				.contains("payments_initiated_total")
-				.contains("payments_idempotency_total")
+				.contains("payment_requests_total")
+				.contains("payment_created_amount_minor_sum")
 				.contains("application=\"payment-service\"");
 	}
 

@@ -1,11 +1,12 @@
 package com.inframaxing.paymentservice.service;
 
+import com.inframaxing.paymentservice.exception.IdempotencyKeyConflictException;
 import com.inframaxing.paymentservice.exception.PaymentNotFoundException;
+import com.inframaxing.paymentservice.metrics.PaymentMetrics;
 import com.inframaxing.paymentservice.model.Money;
 import com.inframaxing.paymentservice.model.Payment;
 import com.inframaxing.paymentservice.model.PaymentCreation;
 import com.inframaxing.paymentservice.repository.PaymentRepository;
-import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -20,14 +21,14 @@ public class PaymentService {
 	private final PaymentRepository repository;
 	private final IdempotencyService idempotency;
 	private final TransactionTemplate transactions;
-	private final MeterRegistry meterRegistry;
+	private final PaymentMetrics metrics;
 
 	public PaymentService(PaymentRepository repository, IdempotencyService idempotency,
-			PlatformTransactionManager transactionManager, MeterRegistry meterRegistry) {
+			PlatformTransactionManager transactionManager, PaymentMetrics metrics) {
 		this.repository = repository;
 		this.idempotency = idempotency;
 		this.transactions = new TransactionTemplate(transactionManager);
-		this.meterRegistry = meterRegistry;
+		this.metrics = metrics;
 	}
 
 	public PaymentCreation create(UUID merchantId, String idempotencyKey, Money money, String reference) {
@@ -40,11 +41,10 @@ public class PaymentService {
 				idempotency.register(merchantId, idempotencyKey, requestHash, payment.id());
 			});
 		} catch (DuplicateKeyException e) {
-			UUID existing = idempotency.replay(merchantId, idempotencyKey, requestHash);
-			return new PaymentCreation(get(existing), true);
+			return replay(merchantId, idempotencyKey, requestHash);
 		}
 
-		meterRegistry.counter("payments.initiated", "currency", money.currency()).increment();
+		metrics.created(money);
 		return new PaymentCreation(payment, false);
 	}
 
@@ -64,13 +64,25 @@ public class PaymentService {
 		return change(id, payment -> payment.fail(providerCode, failureReason));
 	}
 
+	public Payment get(UUID id) {
+		return repository.findById(id).orElseThrow(() -> new PaymentNotFoundException(id));
+	}
+
+	private PaymentCreation replay(UUID merchantId, String idempotencyKey, String requestHash) {
+		UUID existing;
+		try {
+			existing = idempotency.replay(merchantId, idempotencyKey, requestHash);
+		} catch (IdempotencyKeyConflictException e) {
+			metrics.conflict();
+			throw e;
+		}
+		metrics.replayed();
+		return new PaymentCreation(get(existing), true);
+	}
+
 	private Payment change(UUID id, Consumer<Payment> transition) {
 		Payment payment = get(id);
 		transition.accept(payment);
 		return repository.update(payment);
-	}
-
-	public Payment get(UUID id) {
-		return repository.findById(id).orElseThrow(() -> new PaymentNotFoundException(id));
 	}
 }

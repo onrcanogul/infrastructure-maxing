@@ -4,7 +4,6 @@ import com.inframaxing.paymentservice.exception.IdempotencyKeyConflictException;
 import com.inframaxing.paymentservice.model.IdempotencyRecord;
 import com.inframaxing.paymentservice.model.Money;
 import com.inframaxing.paymentservice.repository.JdbcIdempotencyStore;
-import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
@@ -18,11 +17,9 @@ import java.util.UUID;
 public class IdempotencyService {
 
 	private final JdbcIdempotencyStore store;
-	private final MeterRegistry meterRegistry;
 
-	public IdempotencyService(JdbcIdempotencyStore store, MeterRegistry meterRegistry) {
+	public IdempotencyService(JdbcIdempotencyStore store) {
 		this.store = store;
-		this.meterRegistry = meterRegistry;
 	}
 
 	public String requestHash(UUID merchantId, Money money, String reference) {
@@ -42,15 +39,9 @@ public class IdempotencyService {
 		IdempotencyRecord record = store.find(merchantId, key)
 				.orElseThrow(() -> new IllegalStateException("idempotency key missing after unique violation: " + key));
 		if (!record.requestHash().equals(requestHash)) {
-			count("conflict");
 			throw new IdempotencyKeyConflictException(key);
 		}
-		count("replayed");
 		return record.paymentId();
-	}
-
-	private void count(String outcome) {
-		meterRegistry.counter("payments.idempotency", "outcome", outcome).increment();
 	}
 
 	private static byte[] sha256(String value) {
