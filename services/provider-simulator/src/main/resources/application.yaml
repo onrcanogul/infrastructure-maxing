@@ -13,6 +13,7 @@ app:
   simulator:
     latency: ${PAYROUTE_SIM_LATENCY:200ms}
     approve: ${PAYROUTE_SIM_APPROVE:true}
+    timeout-sleep: ${PAYROUTE_SIM_TIMEOUT_SLEEP:60s}
     idempotency:
       ttl: ${PAYROUTE_SIM_IDEMPOTENCY_TTL:10m}
       max-entries: ${PAYROUTE_SIM_IDEMPOTENCY_MAX_ENTRIES:100000}
